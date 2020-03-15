@@ -17,9 +17,7 @@ Website teams moving to this space have to plan four steps -- one for each categ
 
 <figure>
   <img alt="" src="./modern-website-performance.png" />
-  <figcaption>
-    Three facets of modern website projects
-  </figcaption>
+  <figcaption>Three facets of modern website projects</figcaption>
 </figure>
 
 ## Moving to the content mesh
@@ -63,16 +61,21 @@ The challenge for website teams is: how to achieve this without a lot of costly,
 
 The answer: choose a content mesh. A content mesh:
 
-- pulls in data from your headless CMS systems
+- pulls in data from your [headless CMS](/docs/headless-cms/) systems
 
 - enables you to develop in your preferred UI library while providing website tooling
 
 - automatically makes your site fast out of the box
 
 <figure>
-  <img alt="The modern website landscape" src="./content-mesh.png" height="300" />
+  <img
+    alt="The modern website landscape"
+    src="./content-mesh.png"
+    height="300"
+  />
   <figcaption>
-   The Content Mesh integrates <b>headless</b> content systems, modern development tools, and website performance
+    The Content Mesh integrates <b>headless</b> content systems, modern
+    development tools, and website performance
   </figcaption>
 </figure>
 
@@ -106,7 +109,7 @@ Middleman allows connections to third-party data sources, though currently only 
 
 Gatsby is the only content mesh option that creates fast websites, supports modern development frameworks, _and_ connects to enterprise content systems. Gatsby features:
 
-- **Integrations with 120+ backends**, including 15+ enterprise content systems like Wordpress, Drupal, Contentful, Contentstack, Salsify and Shopify, as well as the ability to add additional sources.
+- **Integrations with 120+ backends**, including 15+ enterprise content systems like WordPress, Drupal, Contentful, Contentstack, Salsify and Shopify, as well as the ability to add additional sources.
 
 - **A React development environment**, along with key plugins that provide key website features like SEO, routing, accessibility, and i18n.
 

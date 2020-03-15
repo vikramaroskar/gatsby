@@ -5,9 +5,11 @@ const flexbugs = require(`postcss-flexbugs-fixes`)
 const TerserPlugin = require(`terser-webpack-plugin`)
 const MiniCssExtractPlugin = require(`mini-css-extract-plugin`)
 const OptimizeCssAssetsPlugin = require(`optimize-css-assets-webpack-plugin`)
+const ReactRefreshWebpackPlugin = require(`@pmmmwh/react-refresh-webpack-plugin`)
 const isWsl = require(`is-wsl`)
 
 const GatsbyWebpackStatsExtractor = require(`./gatsby-webpack-stats-extractor`)
+const GatsbyWebpackEslintGraphqlSchemaReload = require(`./gatsby-webpack-eslint-graphql-schema-reload-plugin`)
 
 const builtinPlugins = require(`./webpack-plugins`)
 const eslintConfig = require(`./eslint-config`)
@@ -62,6 +64,7 @@ export type LoaderUtils = {
   file: LoaderResolver<*>,
   url: LoaderResolver<*>,
   js: LoaderResolver<*>,
+  dependencies: LoaderResovler<*>,
 
   miniCssExtract: LoaderResolver<*>,
   imports: LoaderResolver<*>,
@@ -255,8 +258,18 @@ module.exports = async ({
 
     js: options => {
       return {
-        options,
+        options: {
+          stage,
+          ...options,
+        },
         loader: require.resolve(`./babel-loader`),
+      }
+    },
+
+    dependencies: options => {
+      return {
+        options,
+        loader: require.resolve(`babel-loader`),
       }
     },
 
@@ -294,9 +307,7 @@ module.exports = async ({
    * and packages that depend on `gatsby`
    */
   {
-    let js = (
-      { modulesThatUseGatsby, ...options } = { modulesThatUseGatsby: [] }
-    ) => {
+    let js = ({ modulesThatUseGatsby = [], ...options } = {}) => {
       return {
         test: /\.(js|mjs|jsx)$/,
         include: modulePath => {
@@ -312,7 +323,13 @@ module.exports = async ({
           )
         },
         type: `javascript/auto`,
-        use: [loaders.js(options)],
+        use: [
+          loaders.js({
+            ...options,
+            configFile: true,
+            compact: PRODUCTION,
+          }),
+        ],
       }
     }
 
@@ -325,21 +342,20 @@ module.exports = async ({
    * Excludes modules that use Gatsby since the `rules.js` already transpiles those
    */
   {
-    let dependencies = (
-      { modulesThatUseGatsby, ...options } = { modulesThatUseGatsby: [] }
-    ) => {
+    let dependencies = ({ modulesThatUseGatsby = [] } = {}) => {
       const jsOptions = {
         babelrc: false,
         configFile: false,
         compact: false,
-        presets: [
-          [require.resolve(`babel-preset-gatsby/dependencies`), { stage }],
-        ],
+        presets: [require.resolve(`babel-preset-gatsby/dependencies`)],
         // If an error happens in a package, it's possible to be
         // because it was compiled. Thus, we don't want the browser
         // debugger to show the original code. Instead, the code
         // being evaluated would be much more helpful.
         sourceMaps: false,
+        cacheIdentifier: `${stage}---gatsby-dependencies@${
+          require(`babel-preset-gatsby/package.json`).version
+        }`,
       }
 
       return {
@@ -367,7 +383,7 @@ module.exports = async ({
           return true
         },
         type: `javascript/auto`,
-        use: [loaders.js(jsOptions)],
+        use: [loaders.dependencies(jsOptions)],
       }
     }
 
@@ -445,7 +461,10 @@ module.exports = async ({
         loaders.css({ ...options, importLoaders: 1 }),
         loaders.postcss({ browsers }),
       ]
-      if (!isSSR) use.unshift(loaders.miniCssExtract({ hmr: !options.modules }))
+      if (!isSSR)
+        use.unshift(
+          loaders.miniCssExtract({ hmr: !PRODUCTION && !options.modules })
+        )
 
       return {
         use,
@@ -524,7 +543,77 @@ module.exports = async ({
       ...options,
     })
 
-  plugins.minifyCss = (options = {}) => new OptimizeCssAssetsPlugin(options)
+  plugins.minifyCss = (
+    options = {
+      cssProcessorPluginOptions: {
+        preset: [
+          `default`,
+          {
+            svgo: {
+              full: true,
+              plugins: [
+                {
+                  // potentially destructive plugins removed - see https://github.com/gatsbyjs/gatsby/issues/15629
+                  // convertShapeToPath: true,
+                  // removeViewBox: true,
+                  removeUselessDefs: true,
+                  addAttributesToSVGElement: true,
+                  addClassesToSVGElement: true,
+                  cleanupAttrs: true,
+                  cleanupEnableBackground: true,
+                  cleanupIDs: true,
+                  cleanupListOfValues: true,
+                  cleanupNumericValues: true,
+                  collapseGroups: true,
+                  convertColors: true,
+                  convertPathData: true,
+                  convertStyleToAttrs: true,
+                  convertTransform: true,
+                  inlineStyles: true,
+                  mergePaths: true,
+                  minifyStyles: true,
+                  moveElemsAttrsToGroup: true,
+                  moveGroupAttrsToElems: true,
+                  prefixIds: true,
+                  removeAttributesBySelector: true,
+                  removeAttrs: true,
+                  removeComments: true,
+                  removeDesc: true,
+                  removeDimensions: true,
+                  removeDoctype: true,
+                  removeEditorsNSData: true,
+                  removeElementsByAttr: true,
+                  removeEmptyAttrs: true,
+                  removeEmptyContainers: true,
+                  removeEmptyText: true,
+                  removeHiddenElems: true,
+                  removeMetadata: true,
+                  removeNonInheritableGroupAttrs: true,
+                  removeOffCanvasPaths: true,
+                  removeRasterImages: true,
+                  removeScriptElement: true,
+                  removeStyleElement: true,
+                  removeTitle: true,
+                  removeUnknownsAndDefaults: true,
+                  removeUnusedNS: true,
+                  removeUselessStrokeAndFill: true,
+                  removeXMLNS: true,
+                  removeXMLProcInst: true,
+                  reusePaths: true,
+                  sortAttrs: true,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    }
+  ) => new OptimizeCssAssetsPlugin(options)
+
+  plugins.fastRefresh = () =>
+    new ReactRefreshWebpackPlugin({
+      disableRefreshCheck: true,
+    })
 
   /**
    * Extracts css requires into a single file;
@@ -540,6 +629,9 @@ module.exports = async ({
   plugins.moment = () => plugins.ignore(/^\.\/locale$/, /moment$/)
 
   plugins.extractStats = options => new GatsbyWebpackStatsExtractor(options)
+
+  plugins.eslintGraphqlSchemaReload = options =>
+    new GatsbyWebpackEslintGraphqlSchemaReload(options)
 
   return {
     loaders,

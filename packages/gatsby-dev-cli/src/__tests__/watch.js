@@ -101,8 +101,6 @@ describe(`watching`, () => {
       await callEventCallback(`add`, filePath)
       await callReadyCallback()
 
-      // console.log(`checking`)
-
       expect(fs.copy).toHaveBeenCalledTimes(1)
       expect(fs.copy).toHaveBeenCalledWith(
         filePath,
@@ -129,7 +127,7 @@ describe(`watching`, () => {
       )
     })
 
-    it(`filters non-existant files/directories`, () => {
+    it(`filters non-existent files/directories`, () => {
       fs.existsSync.mockReset().mockImplementation(file => false)
 
       watch(...args)
@@ -264,6 +262,9 @@ const monoRepoPackages = [
   `gatsby-source-shopify`,
   `gatsby-source-wikipedia`,
   `gatsby-source-wordpress`,
+  `gatsby-theme-blog`,
+  `gatsby-theme-blog-core`,
+  `gatsby-theme-notes`,
   `gatsby-telemetry`,
   `gatsby-transformer-asciidoc`,
   `gatsby-transformer-csv`,
@@ -314,7 +315,7 @@ jest.mock(`../utils/promisified-spawn`, () => {
   }
 })
 
-describe(`dependency changs`, () => {
+describe(`dependency changes`, () => {
   const { publishPackage } = require(`../local-npm-registry/publish-package`)
   const { installPackages } = require(`../local-npm-registry/install-packages`)
   const { checkDepsChanges } = require(`../utils/check-deps-changes`)

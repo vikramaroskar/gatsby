@@ -11,7 +11,7 @@ const githubRepoRegex: RegExp = new RegExp(
 
 const getExistingFiles = async (path: string, base: string) => {
   const [owner, repo] = danger.github.pr.head.repo.full_name.split("/")
-  const imagesDirReponse: {
+  const imagesDirResponse: {
     data: { name: string }[]
   } = await danger.github.api.repos.getContent({
     repo,
@@ -19,7 +19,7 @@ const getExistingFiles = async (path: string, base: string) => {
     path,
     ref: danger.github.pr.head.ref,
   })
-  const files = imagesDirReponse.data.map(({ name }) => `${base}/${name}`)
+  const files = imagesDirResponse.data.map(({ name }) => `${base}/${name}`)
   return files
 }
 
@@ -118,7 +118,7 @@ const getCreatorsSchema = async () => {
           .required(),
         description: Joi.string(),
         location: Joi.string(),
-        // need to explicitely allow `null` to not fail on github: null fields
+        // need to explicitly allow `null` to not fail on github: null fields
         github: Joi.string()
           .uri(uriOptions)
           .allow(null),
@@ -205,9 +205,7 @@ export const validateYaml = async () => {
     )
   } catch (e) {
     warn(
-      `## "docs/categories.yml" is not valid YAML file:\n\n\`\`\`${
-        e.message
-      }\n\`\`\``
+      `## "docs/categories.yml" is not valid YAML file:\n\n\`\`\`${e.message}\n\`\`\``
     )
     return
   }
