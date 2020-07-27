@@ -1,7 +1,8 @@
 /** @jsx jsx */
 import { jsx } from "theme-ui"
 import React from "react"
-import { Link, navigate, PageRenderer } from "gatsby"
+import { navigate, PageRenderer } from "gatsby"
+import Link from "./localized-link"
 import { useColorMode } from "theme-ui"
 import { Global } from "@emotion/core"
 import mousetrap from "mousetrap"
@@ -128,8 +129,8 @@ export default function Modal({
                 height: 40,
                 left: `auto`,
                 position: `absolute`,
-                right: t => t.space[7],
-                top: t => t.space[8],
+                right: 7,
+                top: 8,
                 width: 40,
                 "&:hover": {
                   bg: `ui.hover`,

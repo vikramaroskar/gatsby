@@ -1,6 +1,6 @@
 /*  eslint-disable new-cap */
 const graphql = require(`gatsby/graphql`)
-const murmurhash = require(`./murmur`)
+const { murmurhash } = require(`./murmur`)
 const nodePath = require(`path`)
 
 class StringInterpolationNotAllowedError extends Error {
@@ -38,6 +38,20 @@ class GraphQLSyntaxError extends Error {
 
 const isGlobalIdentifier = tag =>
   tag.isIdentifier({ name: `graphql` }) && tag.scope.hasGlobal(`graphql`)
+
+export function followVariableDeclarations(binding) {
+  const node = binding.path?.node
+  if (
+    node?.type === `VariableDeclarator` &&
+    node?.id.type === `Identifier` &&
+    node?.init?.type === `Identifier`
+  ) {
+    return followVariableDeclarations(
+      binding.path.scope.getBinding(node.init.name)
+    )
+  }
+  return binding
+}
 
 function getTagImport(tag) {
   const name = tag.node.name
@@ -141,7 +155,9 @@ function getGraphQLTag(path) {
   }
 
   const text = quasis[0].value.raw
-  const hash = murmurhash(text, `abc`)
+  const normalizedText = graphql.stripIgnoredCharacters(text)
+
+  const hash = murmurhash(normalizedText, `abc`)
 
   try {
     const ast = graphql.parse(text)
@@ -149,7 +165,7 @@ function getGraphQLTag(path) {
     if (ast.definitions.length === 0) {
       throw new EmptyGraphQLTagError(quasis[0].loc)
     }
-    return { ast, text, hash, isGlobal }
+    return { ast, text: normalizedText, hash, isGlobal }
   } catch (err) {
     throw new GraphQLSyntaxError(text, err, quasis[0].loc)
   }
@@ -159,23 +175,21 @@ function isUseStaticQuery(path) {
   return (
     (path.node.callee.type === `MemberExpression` &&
       path.node.callee.property.name === `useStaticQuery` &&
-      path
-        .get(`callee`)
-        .get(`object`)
-        .referencesImport(`gatsby`)) ||
+      path.get(`callee`).get(`object`).referencesImport(`gatsby`)) ||
     (path.node.callee.name === `useStaticQuery` &&
       path.get(`callee`).referencesImport(`gatsby`))
   )
 }
 
-export default function({ types: t }) {
+export default function ({ types: t }) {
   return {
     visitor: {
       Program(path, state) {
         const nestedJSXVistor = {
           JSXIdentifier(path2) {
             if (
-              [`production`, `test`].includes(process.env.NODE_ENV) &&
+              (process.env.NODE_ENV === `test` ||
+                state.opts.stage === `build-html`) &&
               path2.isJSXIdentifier({ name: `StaticQuery` }) &&
               path2.referencesImport(`gatsby`) &&
               path2.parent.type !== `JSXClosingElement`
@@ -214,7 +228,8 @@ export default function({ types: t }) {
         const nestedHookVisitor = {
           CallExpression(path2) {
             if (
-              [`production`, `test`].includes(process.env.NODE_ENV) &&
+              (process.env.NODE_ENV === `test` ||
+                state.opts.stage === `build-html`) &&
               isUseStaticQuery(path2)
             ) {
               const identifier = t.identifier(`staticQueryData`)
@@ -353,21 +368,6 @@ export default function({ types: t }) {
           },
         })
 
-        function followVariableDeclarations(binding) {
-          const node = binding.path?.node
-          if (
-            node &&
-            node.type === `VariableDeclarator` &&
-            node.id.type === `Identifier` &&
-            node.init.type === `Identifier`
-          ) {
-            return followVariableDeclarations(
-              binding.path.scope.getBinding(node.init.name)
-            )
-          }
-          return binding
-        }
-
         // Traverse once again for useStaticQuery instances
         path.traverse({
           CallExpression(hookPath) {
@@ -434,4 +434,5 @@ export {
   StringInterpolationNotAllowedError,
   EmptyGraphQLTagError,
   GraphQLSyntaxError,
+  murmurhash,
 }

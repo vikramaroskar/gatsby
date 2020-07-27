@@ -9,7 +9,9 @@ https://using-contentful.gatsbyjs.org/
 
 ## Install
 
-`npm install --save gatsby-source-contentful`
+```shell
+npm install --save gatsby-source-contentful
+```
 
 ## How to use
 
@@ -144,7 +146,7 @@ You can pass in any other options available in the [contentful.js SDK](https://g
 
 **`localeFilter`** [function][optional] [default: `() => true`]
 
-Possibility to limit how many locales/nodes are created in graphQL. This can limit the memory usage by reducing the amount of nodes created. Useful if you have a large space in contentful and only want to get the data from one selected locale.
+Possibility to limit how many locales/nodes are created in GraphQL. This can limit the memory usage by reducing the amount of nodes created. Useful if you have a large space in contentful and only want to get the data from one selected locale.
 
 For example, to filter locales on only germany `localeFilter: locale => locale.code === 'de-DE'`
 
@@ -396,7 +398,7 @@ Check out the examples at [@contentful/rich-text-react-renderer](https://github.
 
 To source from multiple Contentful environments/spaces, add another configuration for `gatsby-source-contentful` in `gatsby-config.js`:
 
-```
+```javascript
 // In your gatsby-config.js
 module.exports = {
   plugins: [
@@ -413,7 +415,7 @@ module.exports = {
         spaceId: `your_second_space_id`,
         accessToken: process.env.SECONDARY_CONTENTFUL_ACCESS_TOKEN,
       },
-    }
+    },
   ],
 }
 ```

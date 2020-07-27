@@ -22,14 +22,7 @@ export function showFeedbackRequest(): void {
   report.log(`\nGive us your feedback here: https://gatsby.dev/feedback\n\n`)
 }
 
-// We are only showing feedback requests to users in if they pass a few checks:
-// 1. They pass a Math.random() check. This is a skateboard version of not sending out all requests in one day.
-// 2. They haven't disabled the feedback mechanism
-// 3. They don't have the environment variable to disable feedback present
-// 4. It's been at least 3 months since the last feedback request
-// 5. They are on the most recent version of Gatsby
-export async function userPassesFeedbackRequestHeuristic(): Promise<boolean> {
-  // Heuristic 1
+const randomChanceToBeTrue = (): boolean => {
   // This is spreading the request volume over the quarter.
   // We are grabbing a randomNumber within the spread of a first day
   // of a quarter, to the last day
@@ -39,9 +32,30 @@ export async function userPassesFeedbackRequestHeuristic(): Promise<boolean> {
       // One quarter year in days (roughly)
       (30 * 3)
   )
-  const randomNumberWithinQuarter = randomNumber * currentQuarter
+  const randomNumberWithinQuarter = randomNumber + 30 * 3 * (currentQuarter - 1)
 
-  if (randomNumberWithinQuarter !== getDayOfYear(new Date())) {
+  return randomNumberWithinQuarter === getDayOfYear(new Date())
+}
+
+// We are only showing feedback requests to users in if they pass a few checks:
+// 1. They pass a Math.random() check. This is a skateboard version of not sending out all requests in one day.
+// 2. They haven't disabled the feedback mechanism
+// 3. They don't have the environment variable to disable feedback present
+// 4. It's been at least 3 months since the last feedback request
+// 5. They are on the most recent version of Gatsby
+export async function userPassesFeedbackRequestHeuristic(): Promise<boolean> {
+  // Heuristic 1
+  // We originally wrote this to have a single chance of hitting.
+  // We wanted to up the chance by 5x, so this is our crude - temporary -
+  // way of giving the user 5 chances to passing.
+  const randomlyPassingHeuristic =
+    randomChanceToBeTrue() ||
+    randomChanceToBeTrue() ||
+    randomChanceToBeTrue() ||
+    randomChanceToBeTrue() ||
+    randomChanceToBeTrue()
+
+  if (!randomlyPassingHeuristic) {
     return false
   }
 
@@ -62,9 +76,10 @@ export async function userPassesFeedbackRequestHeuristic(): Promise<boolean> {
   //     received a request from us.
   if (lastDateValue) {
     const lastDate = new Date(lastDateValue)
-    const monthsSinceLastRequest = lastDate.getMonth() - new Date().getMonth()
+    const threeMonthsAgo = new Date()
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
 
-    if (monthsSinceLastRequest < 3) {
+    if (lastDate > threeMonthsAgo) {
       return false
     }
   }
